@@ -1,4 +1,4 @@
-from entities import Entity
+from models.entities import Entity
 import random
 
 

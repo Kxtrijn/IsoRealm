@@ -1,6 +1,6 @@
 # renderer.py (updated)
 import pygame
-from ui import UI
+from ui.ui import UI
 from constants import *
 
 

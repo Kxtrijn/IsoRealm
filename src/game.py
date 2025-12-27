@@ -1,14 +1,14 @@
 import pygame
 import random
 from constants import *
-from game_map import GameMap
-from camera import Camera
-from renderer import Renderer
+from world.game_map import GameMap
+from view.camera import Camera
+from ui.renderer import Renderer
 from input import Controls
-from player import Player
-from monster import Monster
+from models.player import Player
+from models.monster import Monster
 from resource import Resource
-from assets_loader import *
+from loaders.assets_loader import *
 
 
 class Game:
