@@ -52,10 +52,10 @@ class Renderer:
         self.screen.blit(frame, 
                         (screen_x - frame_width // 2, 
                          screen_y - frame_height // 2 + vertical_offset))
-    
-    def draw_hud(self, player, resources_left):
+
+    def draw_hud(self, player, resources_left, rotation=0):
         """Draw the HUD"""
-        self.ui.draw_hud(player, resources_left)
+        self.ui.draw_hud(player, resources_left, rotation)
     
     def draw_state_indicator(self, player, resources_left):
         """Draw animation state indicator"""

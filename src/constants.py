@@ -1,4 +1,5 @@
 import os
+import pygame
 
 # Directory paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -16,6 +17,12 @@ ZOOM_MIN = 0.5
 ZOOM_MAX = 2.0
 ZOOM_SPEED = 0.1
 DEFAULT_ZOOM = 1.0
+
+# constants.py - Add these lines
+ROTATION_SPEED = 0.1  # Slower rotation speed (0.1 seconds between rotations)
+ROTATION_COOLDOWN = 200  # milliseconds between rotations
+
+ROTATION_KEY = pygame.K_r  # Add this line
 
 # Animation speeds in milliseconds
 ANIM_SPEED_PLAYER = 120

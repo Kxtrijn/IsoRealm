@@ -46,39 +46,49 @@ class UI:
         self.screen.blit(main_surf, (x, y))
         
         return main_surf.get_size()
-    
-    def draw_hud(self, player, resources_left):
+
+    # Update draw_hud method in UI class in ui.py
+    def draw_hud(self, player, resources_left, rotation=0):
         """Draw the main HUD with player stats and controls"""
         hud_y = 8
-        
-        # Main stats - drawn with shadow
+    
+        # Main stats
         anim_state = "IDLE" if player.current_anim == 'idle' else "WALKING"
         state_color = self.colors['idle'] if player.current_anim == 'idle' else self.colors['walk']
-        
-        # Render HUD text with shadow
+    
+        # Add rotation to HUD
+        rotation_text = f"Rotation: {rotation * 90}°"
+    
         hud_text = f'HP: {player.hp} | Resources: {player.inv.get("resource", 0)} | Remaining: {resources_left} | State: '
         txt_width, _ = self.draw_text_with_shadow(
             hud_text, self.font, self.colors['text'], 8, hud_y
         )
-        
-        # Draw state text with shadow
+    
+        # Draw state text
         self.draw_text_with_shadow(
             anim_state, self.font, state_color, 8 + txt_width, hud_y
         )
-        
+    
         hud_y += 25
-        
-        # Controls with shadows
+    
+        # Add rotation info
+        self.draw_text_with_shadow(
+            rotation_text, self.font, (200, 220, 255), 8, hud_y
+        )
+    
+        hud_y += 25
+
+        # In ui.py, update the controls list in draw_hud method
         controls = [
             "Arrows/WASD: Move (auto idle when stopped)",
-            "Space: Attack adjacent | E: Gather resource",
+            "Space: Attack | G: Gather resource | R: Rotate world",
             "F1: Toggle debug | F2: Toggle folder view",
             "ESC: Quit"
         ]
-        
+    
         for i, line in enumerate(controls):
             self.draw_text_with_shadow(
-                line, self.small_font, self.colors['text_secondary'], 
+                line, self.small_font, self.colors['text_secondary'],
                 8, hud_y + i * 18
             )
     

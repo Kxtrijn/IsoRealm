@@ -7,12 +7,12 @@ class Player(Entity):
         super().__init__(x, y, img, hp=constants.PLAYER_HP)
         self.inv = {'resource': 0}
         self.anim_speed = constants.ANIM_SPEED_PLAYER
-        
+
     def move(self, dx, dy, game_map):
         """Move player and update animation state"""
         new_x = self.x + dx
         new_y = self.y + dy
-        
+
         # Check bounds
         if 0 <= new_x < game_map.w and 0 <= new_y < game_map.h:
             self.x = new_x
@@ -20,7 +20,7 @@ class Player(Entity):
             self.set_facing_direction(dx, dy)
             return True
         return False
-    
+
     def attack(self, monsters):
         """Attack adjacent monsters"""
         attacked = False
@@ -34,7 +34,7 @@ class Player(Entity):
                     monsters.remove(monster)
                 attacked = True
         return attacked
-    
+
     def gather_resource(self, resources):
         """Gather resource at current position"""
         for resource in resources[:]:
