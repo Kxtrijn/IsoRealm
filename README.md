@@ -2,10 +2,12 @@
 
 A small isometric singleplayer RPG prototype in Python.
 
-- Run:
-- - install python 3.12
+- Build:
+  - install python 3.12
   - install requirements: open terminal in main folder and run `pip install -r requirements.txt`
   - then run `python src/main.py`
+
+- Run: https://youtu.be/Bz71yfxBqxI
 
 - Controls:
   - Arrow keys: move on the isometric grid
