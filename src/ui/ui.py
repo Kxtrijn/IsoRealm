@@ -47,8 +47,8 @@ class UI:
         
         return main_surf.get_size()
 
-    # Update draw_hud method in UI class in ui.py
-    def draw_hud(self, player, resources_left, rotation=0):
+    # ui.py - update draw_hud method
+    def draw_hud(self, player, resources_left, rotation=0, zoom=1.0):
         """Draw the main HUD with player stats and controls"""
         hud_y = 8
     
@@ -56,8 +56,9 @@ class UI:
         anim_state = "IDLE" if player.current_anim == 'idle' else "WALKING"
         state_color = self.colors['idle'] if player.current_anim == 'idle' else self.colors['walk']
     
-        # Add rotation to HUD
+        # Add rotation and zoom to HUD
         rotation_text = f"Rotation: {rotation * 90}°"
+        zoom_text = f"Zoom: {zoom:.1f}x"
     
         hud_text = f'HP: {player.hp} | Resources: {player.inv.get("resource", 0)} | Remaining: {resources_left} | State: '
         txt_width, _ = self.draw_text_with_shadow(
@@ -71,19 +72,23 @@ class UI:
     
         hud_y += 25
     
-        # Add rotation info
+        # Add rotation and zoom info
         self.draw_text_with_shadow(
             rotation_text, self.font, (200, 220, 255), 8, hud_y
         )
     
+        rot_txt_width, _ = self.font.size(rotation_text)
+        self.draw_text_with_shadow(
+            zoom_text, self.font, (220, 255, 200), 8 + rot_txt_width + 20, hud_y
+        )
+    
         hud_y += 25
-
-        # In ui.py, update the controls list in draw_hud method
+    
+        # Update controls list to include zoom controls
         controls = [
-            "Arrows/WASD: Move (auto idle when stopped)",
-            "Space: Attack | G: Gather resource | R: Rotate world",
-            "F1: Toggle debug | F2: Toggle folder view",
-            "ESC: Quit"
+            "Arrows/WASD: Move | Space: Attack | G: Gather | R: Rotate world",
+            "Mouse Wheel/+/-: Zoom | 0: Reset zoom | F1: Toggle debug",
+            "F2: Toggle folder view | ESC: Quit"
         ]
     
         for i, line in enumerate(controls):
@@ -91,45 +96,46 @@ class UI:
                 line, self.small_font, self.colors['text_secondary'],
                 8, hud_y + i * 18
             )
-    
-    def draw_debug_info(self, sprite_status, all_loaded_files, clock, player):
+
+    # ui.py - add zoom parameter to draw_debug_info
+    def draw_debug_info(self, sprite_status, all_loaded_files, clock, player, zoom=1.0):
         """Draw debug information panel"""
         debug_y = SCREEN_H - 180
-        
+    
         # Sprite status header with shadow
         self.draw_text_with_shadow(
-            "Sprite Status:", self.font, self.colors['debug'], 
+            "Sprite Status:", self.font, self.colors['debug'],
             8, debug_y
         )
         debug_y += 25
-        
+    
         # Sprite status lines with shadows
         for i, status in enumerate(sprite_status):
             color = self.colors['success'] if "✓" in status else self.colors['error']
             self.draw_text_with_shadow(
-                status, self.small_font, color, 
+                status, self.small_font, color,
                 12, debug_y + i * 18
             )
-        
+    
         debug_y += len(sprite_status) * 18 + 15
-        
-        # File info and FPS with shadow
-        file_info = f"Total files loaded: {len(all_loaded_files)} | FPS: {int(clock.get_fps())}"
+    
+        # File info and FPS with shadow - include zoom info
+        file_info = f"Total files loaded: {len(all_loaded_files)} | FPS: {int(clock.get_fps())} | Zoom: {zoom:.1f}x"
         self.draw_text_with_shadow(
-            file_info, self.small_font, self.colors['debug'], 
+            file_info, self.small_font, self.colors['debug'],
             8, debug_y
         )
         debug_y += 20
-        
+    
         # Player info with shadows
         player_info = [
             f"Position: ({player.x}, {player.y})",
             f"Facing: {player.facing} | Frame: {player.anim_frame}"
         ]
-        
+    
         for i, line in enumerate(player_info):
             self.draw_text_with_shadow(
-                line, self.small_font, self.colors['text_highlight'], 
+                line, self.small_font, self.colors['text_highlight'],
                 8, debug_y + i * 18
             )
     
@@ -203,33 +209,35 @@ class UI:
         # Main text
         main_surf = self.small_font.render(footer_text, True, self.colors['text_secondary'])
         self.screen.blit(main_surf, (footer_x, footer_y))
-    
-    def draw_health_bar(self, entity, screen_x, screen_y, frame_height, current_hp, max_hp):
+
+    # ui.py - update draw_health_bar method
+    def draw_health_bar(self, entity, screen_x, screen_y, frame_height, current_hp, max_hp, zoom=1.0):
         """Draw a health bar above an entity"""
         if current_hp >= max_hp:  # Don't draw full health bars
             return
-        
-        bar_width = 30
-        bar_height = 4
+    
+        # Scale bar dimensions with zoom
+        bar_width = int(30 * zoom)
+        bar_height = max(2, int(4 * zoom))
         bar_x = screen_x - bar_width // 2
-        bar_y = screen_y - frame_height // 2 - 15
-        
+        bar_y = screen_y - int(frame_height * zoom) // 2 - int(15 * zoom)
+    
         # Draw shadow for health bar
-        pygame.draw.rect(self.screen, (0, 0, 0, 100), 
-                        (bar_x + 1, bar_y + 1, bar_width, bar_height))
-        
+        pygame.draw.rect(self.screen, (0, 0, 0, 100),
+                         (bar_x + 1, bar_y + 1, bar_width, bar_height))
+    
         # Draw background
-        pygame.draw.rect(self.screen, self.colors['health_bg'], 
-                        (bar_x, bar_y, bar_width, bar_height))
-        
+        pygame.draw.rect(self.screen, self.colors['health_bg'],
+                         (bar_x, bar_y, bar_width, bar_height))
+    
         # Draw health fill
         health_width = int(bar_width * (current_hp / max_hp))
-        pygame.draw.rect(self.screen, self.colors['health'], 
-                        (bar_x, bar_y, health_width, bar_height))
-        
+        pygame.draw.rect(self.screen, self.colors['health'],
+                         (bar_x, bar_y, health_width, bar_height))
+    
         # Draw border
-        pygame.draw.rect(self.screen, (0, 0, 0, 120), 
-                        (bar_x, bar_y, bar_width, bar_height), 1)
+        pygame.draw.rect(self.screen, (0, 0, 0, 120),
+                         (bar_x, bar_y, bar_width, bar_height), 1)
     
     def draw_notification(self, message, color, duration, current_time):
         """Draw a temporary notification message (optional feature)"""

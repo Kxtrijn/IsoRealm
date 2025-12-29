@@ -1,3 +1,4 @@
+# game.py - update handle_events and HUD
 import pygame
 import random
 from constants import *
@@ -10,8 +11,6 @@ from models.monster import Monster
 from resource import Resource
 from loaders.assets_loader import *
 
-
-# game.py - Update the Game class
 class Game:
     def __init__(self):
         pygame.init()
@@ -153,6 +152,23 @@ class Game:
                 if event.key == pygame.K_r:
                     self.rotate_world_90()
 
+                # Handle plus/minus keys for zoom
+                elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
+                    self.camera.zoom_in(ZOOM_SPEED, pygame.mouse.get_pos())
+                elif event.key == pygame.K_MINUS:
+                    self.camera.zoom_out(ZOOM_SPEED, pygame.mouse.get_pos())
+                elif event.key == pygame.K_0:
+                    self.camera.reset_zoom()
+
+            elif event.type == pygame.MOUSEWHEEL:
+                # Mouse wheel zoom with mouse position as center point
+                mouse_pos = pygame.mouse.get_pos()
+                if event.y > 0:  # Scroll up - zoom in
+                    self.camera.zoom_in(ZOOM_SPEED * 2, mouse_pos)
+                elif event.y < 0:  # Scroll down - zoom out
+                    self.camera.zoom_out(ZOOM_SPEED * 2, mouse_pos)
+
+
     def update(self, dt):
         """Update game state"""
         # Update controls
@@ -180,44 +196,58 @@ class Game:
     def render(self):
         """Render the game"""
         self.renderer.clear()
-
+    
         # Prepare draw list for depth sorting
         draw_list = self.prepare_draw_list()
-
+    
         # Sort by depth
         draw_list.sort(key=lambda item: item['depth'])
-
+    
+        # Extract just the tiles for grid dots
+        tile_list = [item for item in draw_list if item['type'] == 'tile']
+    
+        # TEST: Draw a red debug dot at player position
+        player_sx, player_sy = self.camera.world_to_screen(self.player.x, self.player.y)
+        pygame.draw.circle(self.screen, (255, 0, 0), (int(player_sx), int(player_sy)), 10)
+    
         # Draw everything
         for item in draw_list:
             sx, sy = item['screen_x'], item['screen_y']
-
+    
             if item['type'] == 'tile':
                 x, y = item['map_x'], item['map_y']
                 tile_type = self.game_map.tiles[x][y]
                 img = self.tileset.get(tile_type, list(self.tileset.values())[0])
-                self.renderer.draw_tile(img, sx, sy)
-
+    
+                # TEST: Draw a green debug dot at tile center before drawing tile
+                pygame.draw.circle(self.screen, (0, 255, 0), (int(sx), int(sy)), 5)
+    
+                self.renderer.draw_tile(img, sx, sy, self.camera.zoom)
+    
             elif item['type'] == 'resource':
                 resource = item['entity']
-                self.renderer.draw_entity(resource, sx, sy, 'resource')
-
+                self.renderer.draw_entity(resource, sx, sy, 'resource', self.camera.zoom)
+    
             elif item['type'] == 'monster':
                 monster = item['entity']
-                self.renderer.draw_entity(monster, sx, sy, 'monster')
-
+                self.renderer.draw_entity(monster, sx, sy, 'monster', self.camera.zoom)
+    
             elif item['type'] == 'player':
-                self.renderer.draw_entity(self.player, sx, sy, 'player')
-
-        # Draw HUD and UI
-        # In game.py, update the render method call
-        self.renderer.draw_hud(self.player, len(self.resources), self.rotation)
-
+                self.renderer.draw_entity(self.player, sx, sy, 'player', self.camera.zoom)
+    
+        # Draw grid dots on top of tiles (in white)
+        self.renderer.draw_grid_dots(tile_list, self.camera.zoom)
+    
+        # Draw HUD and UI with zoom info
+        resources_left = len([r for r in self.resources if not r.collected])
+        self.renderer.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom)
+    
         if self.show_debug:
-            self.renderer.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player)
-
+            self.renderer.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom)
+    
         if self.show_structure:
             self.renderer.draw_folder_structure(self.folder_structure)
-
+    
         pygame.display.flip()
 
     def rotate_world_90(self):
