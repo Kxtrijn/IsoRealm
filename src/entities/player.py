@@ -1,4 +1,4 @@
-from models.entities import Entity
+from entities.base_entity import Entity
 import constants
 
 

@@ -1,6 +1,6 @@
 import os
 import pygame
-from constants import TILE_W, TILE_H, TILES_DIR, SPRITES_DIR
+from constants import *
 
 
 def ensure_dirs():
@@ -15,16 +15,6 @@ def make_iso_tile_surface(color, w=TILE_W, h=TILE_H):
     pts = [(w//2, 0), (w-1, h//2), (w//2, h-1), (0, h//2)]
     pygame.draw.polygon(surf, color, pts)
     pygame.draw.polygon(surf, (0, 0, 0, 120), pts, 2)
-    return surf
-
-
-def create_fallback_sprite(color, size=48):
-    """Create a simple fallback sprite"""
-    surf = pygame.Surface((size, size), pygame.SRCALPHA)
-    pygame.draw.circle(surf, color, (size//2, size//2), size//2)
-    pygame.draw.circle(surf, (0, 0, 0, 160), (size//2, size//2), size//2, 2)
-    pygame.draw.circle(surf, (255, 255, 255), (size//2 - 8, size//2 - 6), 4)
-    pygame.draw.circle(surf, (255, 255, 255), (size//2 + 8, size//2 - 6), 4)
     return surf
 
 
@@ -168,3 +158,43 @@ def get_sprite_folder_structure():
         structure.append("No sprite files found in sprites folder")
     
     return structure
+
+
+def iso_to_screen(x, y, cam_x, cam_y):
+    from constants import TILE_W, TILE_H, SCREEN_W, SCREEN_H
+    sx = (x - y) * (TILE_W // 2) - cam_x + SCREEN_W // 2
+    sy = (x + y) * (TILE_H // 2) - cam_y + SCREEN_H // 2
+    return int(sx), int(sy)
+
+# Add these functions to utils.py
+def rotate_world_coords_90_cw(x, y, map_width, map_height, current_rotation):
+    """Rotate world coordinates 90 degrees clockwise"""
+    if current_rotation % 4 == 0:
+        return x, y
+    elif current_rotation % 4 == 1:  # 90° clockwise
+        return y, map_width - 1 - x
+    elif current_rotation % 4 == 2:  # 180°
+        return map_width - 1 - x, map_height - 1 - y
+    else:  # 270° clockwise (or 90° counter-clockwise)
+        return map_height - 1 - y, x
+
+def rotate_direction_90_cw(direction, rotations):
+    """Rotate a facing direction by 90-degree increments"""
+    directions = ['north', 'east', 'south', 'west']
+    if direction not in directions:
+        return direction
+
+    idx = directions.index(direction)
+    return directions[(idx + rotations) % 4]
+
+def rotate_movement_90_cw(dx, dy, rotations):
+    """Rotate movement vector by 90-degree increments clockwise"""
+    # 0 rotations: (dx, dy)
+    # 1 rotation: (dy, -dx)
+    # 2 rotations: (-dx, -dy)
+    # 3 rotations: (-dy, dx)
+
+    for _ in range(rotations % 4):
+        dx, dy = dy, -dx
+
+    return dx, dy

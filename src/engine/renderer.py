@@ -2,6 +2,7 @@
 import pygame
 from ui.ui import UI
 from constants import *
+from ui.hud import HUD
 
 class Renderer:
     def __init__(self, screen):
@@ -100,23 +101,6 @@ class Renderer:
         self.screen.blit(frame,
                          (screen_x - frame_width // 2,
                           screen_y - frame_height // 2 + vertical_offset))
-
-    def draw_grid_dots(self, visible_tiles, zoom=1.0):
-        """
-        Draw grid dots EXACTLY at tile centers.
-        visible_tiles should be a list of dictionaries with 'screen_x', 'screen_y' keys.
-        """
-        for tile in visible_tiles:
-            sx, sy = tile['screen_x'], tile['screen_y']
-
-            # Scale dot size with zoom
-            dot_radius = max(1, int(3 * zoom))
-
-            # Draw a small dot EXACTLY at the tile center (sprite feet position)
-            pygame.draw.circle(self.screen, (255, 255, 255, 180), (sx, sy), dot_radius)
-
-            # Draw a subtle border around the dot for better visibility
-            pygame.draw.circle(self.screen, (0, 0, 0, 100), (sx, sy), dot_radius, 1)
 
     # ... rest of the methods remain the same ...
 

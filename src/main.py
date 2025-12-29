@@ -1,5 +1,5 @@
 import traceback
-from game import Game
+from engine.game import Game
 
 
 def main():

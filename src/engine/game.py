@@ -3,13 +3,19 @@ import pygame
 import random
 from constants import *
 from world.game_map import GameMap
-from view.camera import Camera
-from ui.renderer import Renderer
-from input import Controls
-from models.player import Player
-from models.monster import Monster
-from resource import Resource
-from loaders.assets_loader import *
+from engine.camera import Camera
+from engine.renderer import Renderer
+from engine.controls import Controls
+from entities.player import Player
+from utils.loader import *
+from utils.fallbacks import *
+from entities.entity_manager import EntityManager
+from engine.player_manager import PlayerController
+from world.world_manager import WorldRotator
+from engine.render_manager import RenderManager
+from ui.hud import HUD
+from ui.ui import UI
+from ui.debug_panel import DebugPanel
 
 class Game:
     def __init__(self):
@@ -23,6 +29,11 @@ class Game:
         self.renderer = Renderer(self.screen)
         self.camera = Camera()
 
+        # Initialize managers
+        self.player_controller = PlayerController(self.controls)  # <-- ADD THIS LINE
+        self.world_rotator = WorldRotator()                       # If you created this
+        self.render_manager = RenderManager(self.camera)          # If you created this
+
         self.rotation = 0  # 0 = 0°, 1 = 90°, 2 = 180°, 3 = 270°
         self.rotation_timer = 0  # Timer for smooth rotation
         self.target_rotation = 0  # Target rotation for animation
@@ -32,10 +43,19 @@ class Game:
         self.load_assets()
 
         # Create game world
-        self.game_map = GameMap()
-        self.player = Player(MAP_W // 2, MAP_H // 2, self.player_animations)
-        self.monsters = self.create_monsters()
-        self.resources = self.create_resources()
+        self.game_map = GameMap()  # <-- CREATE MAP HERE
+
+        self.entity_manager = EntityManager(
+        self.game_map, 
+        self.player_animations, 
+        self.monster_animations, 
+        self.resource_sprite
+        )
+
+        self.entity_manager.initialize(MAP_W // 2, MAP_H // 2)
+        self.player = self.entity_manager.player
+        self.monsters = self.entity_manager.monsters
+        self.resources = self.entity_manager.resources
 
         # Game state
         self.show_debug = True
@@ -44,12 +64,12 @@ class Game:
         self.all_loaded_files = []
 
         # Initialize components (Renderer now has UI built-in)
-        self.controls = Controls()
-        self.renderer = Renderer(self.screen)  # This now contains UI
+        self.debug_panel = DebugPanel(self.screen)
+        self.hud = HUD(self.screen)
 
         self.sprite_offset = 0  # Current sprite offset
 
-    def load_assets(self):
+    def load_assets(self): # kat
         """Load all game assets"""
         # Only create directories
         ensure_dirs()
@@ -102,43 +122,6 @@ class Game:
         if not self.resource_sprite:
             self.resource_sprite = create_fallback_sprite((200, 180, 60), 32)
 
-    def create_monsters(self):
-        """Create monster entities"""
-        monsters = []
-        for _ in range(MONSTER_COUNT):
-            x = random.randrange(0, MAP_W)
-            y = random.randrange(0, MAP_H)
-            monster = Monster(x, y, self.monster_animations)
-            monsters.append(monster)
-        return monsters
-
-    def create_resources(self):
-        """Create resource entities with unique positions"""
-        resources = []
-        resource_positions = set()
-
-        for _ in range(RESOURCE_COUNT):
-            attempts = 0
-            while attempts < 100:
-                x = random.randrange(0, MAP_W)
-                y = random.randrange(0, MAP_H)
-
-                # Check if position is occupied
-                if (x, y) not in resource_positions:
-                    player_here = (x == self.player.x and y == self.player.y)
-                    monster_here = any(m.x == x and m.y == y for m in self.monsters)
-
-                    if not player_here and not monster_here:
-                        resource = Resource(x, y, self.resource_sprite)
-                        resources.append(resource)
-                        resource_positions.add((x, y))
-                        break
-
-                attempts += 1
-
-        print(f"Generated {len(resources)} resources in the world")
-        return resources
-
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
@@ -152,7 +135,13 @@ class Game:
 
                 # Handle R key for instant rotation
                 if event.key == pygame.K_r:
-                    self.rotate_world_90()  # This is now instant
+                    self.rotation = self.world_rotator.rotate_world_90(
+                        self.game_map, 
+                        self.camera, 
+                        self.player, 
+                        self.monsters, 
+                        self.resources
+                    )
 
                 # Handle plus/minus keys for zoom - instant zoom
                 elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
@@ -191,19 +180,20 @@ class Game:
 
         # Handle player movement
         keys = pygame.key.get_pressed()
-        moved, (dx, dy) = self.handle_player_movement(keys)
+        moved, (dx, dy) = self.player_controller.handle_movement(
+        self.player, self.game_map, keys
+        )
 
         # Handle auto idle
         self.controls.check_auto_idle(self.player)
 
         # Handle player actions (attack on space, gathering on 'g')
-        self.handle_player_actions(keys)
+        action_result, action_type = self.player_controller.handle_actions(
+            self.player, self.monsters, self.resources, keys
+        )
 
         # Update animations
-        self.player.update_animation(dt)
-        for monster in self.monsters:
-            monster.update_animation(dt)
-            monster.update_ai(self.game_map)
+        self.entity_manager.update(dt)
 
         # Update camera
         self.camera.update(self.player.x, self.player.y)
@@ -243,112 +233,19 @@ class Game:
     
         # Draw grid dots EXACTLY at tile centers
         tile_list = [item for item in draw_list if item['type'] == 'tile']
-        self.renderer.draw_grid_dots(tile_list, self.camera.zoom)
+        self.debug_panel.draw_grid_dots(tile_list, self.camera.zoom)
     
         # Draw HUD and UI with sprite offset info
         resources_left = len([r for r in self.resources if not r.collected])
-        self.renderer.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom, self.sprite_offset)
+        self.hud.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom, self.sprite_offset)
     
         if self.show_debug:
-            self.renderer.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom)
+            self.debug_panel.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom)
     
         if self.show_structure:
-            self.renderer.draw_folder_structure(self.folder_structure)
+            self.debug_panel.draw_folder_structure(self.folder_structure)
     
         pygame.display.flip()
-
-    def rotate_world_90(self):
-        """Rotate the entire world 90 degrees clockwise INSTANTLY"""
-        # Rotate the map
-        self.game_map.rotate_90_clockwise()
-
-        # Update rotation counter
-        self.rotation = (self.rotation + 1) % 4
-
-        print(f"World rotated 90° clockwise (rotation: {self.rotation})")
-
-        # Adjust all entity positions for rotation
-        self.adjust_entities_for_rotation()
-
-        # Force immediate camera update for instant rotation feel
-        self.camera.center_on(self.player.x, self.player.y)
-
-    def adjust_entities_for_rotation(self):
-        """Adjust all entity positions for the current rotation"""
-        map_w, map_h = self.game_map.w, self.game_map.h
-
-        # Adjust player position
-        self.player.x, self.player.y = self.rotate_point_90_cw(
-            self.player.x, self.player.y, map_w, map_h
-        )
-
-        # Adjust monster positions
-        for monster in self.monsters:
-            monster.x, monster.y = self.rotate_point_90_cw(
-                monster.x, monster.y, map_w, map_h
-            )
-
-        # Adjust resource positions
-        for resource in self.resources:
-            resource.x, resource.y = self.rotate_point_90_cw(
-                resource.x, resource.y, map_w, map_h
-            )
-
-    def rotate_point_90_cw(self, x, y, map_w, map_h):
-        """Rotate a point 90 degrees clockwise around map center"""
-        # Map center
-        center_x = map_w / 2 - 0.5
-        center_y = map_h / 2 - 0.5
-
-        # Translate to origin
-        rel_x = x - center_x
-        rel_y = y - center_y
-
-        # Rotate 90 degrees clockwise: (x, y) -> (y, -x)
-        new_x = rel_y
-        new_y = -rel_x
-
-        # Translate back and clamp to bounds
-        new_x = max(0, min(map_w - 1, new_x + center_x))
-        new_y = max(0, min(map_h - 1, new_y + center_y))
-
-        return int(round(new_x)), int(round(new_y))
-
-    def handle_player_actions(self, keys):
-        """Handle player action input"""
-        if keys[pygame.K_SPACE]:
-            self.player.attack(self.monsters)
-
-        # Gathering on 'g' key
-        if keys[pygame.K_g]:
-            if self.player.gather_resource(self.resources):
-                print(f"Collected resource! Total: {self.player.inv['resource']}")
-
-    def handle_player_movement(self, keys):
-        """Handle player movement WITHOUT rotation adjustment"""
-        if self.controls.move_cooldown > 0:
-            return False, (0, 0)
-
-        dx, dy = 0, 0
-
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -1
-        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = 1
-        elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -1
-        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = 1
-        else:
-            return False, (0, 0)
-
-        # NO rotation adjustment - movement is always relative to screen
-        if self.player.move(dx, dy, self.game_map):
-            self.controls.move_cooldown = MOVE_COOLDOWN
-            self.controls.last_move_time = self.controls.game_time
-            return True, (dx, dy)
-
-        return False, (0, 0)
 
     def prepare_draw_list(self):
         """Prepare a list of everything to draw with depth information"""
@@ -416,11 +313,10 @@ class Game:
     def run(self):
         """Main game loop"""
         while self.running:
-            dt = self.clock.tick(FPS)  # Keep FPS consistent
-    
+            dt = self.clock.tick(FPS)  # dt is in milliseconds      
             # Cap dt to prevent large jumps
             dt = min(dt, 100)  # Cap at 100ms to prevent huge jumps
-    
+            
             self.handle_events()
             self.update(dt)
             self.render()
