@@ -62,7 +62,7 @@ class Renderer:
         if entity_type == 'player':
             entity_adjustment = -24 * zoom  # Player slightly higher
         elif entity_type == 'monster':
-            entity_adjustment = -1 * zoom  # Monster slightly higher
+            entity_adjustment = -24 * zoom  # Monster slightly higher
         elif entity_type == 'resource':
             entity_adjustment = 0  # Resource at standard position
         else:
