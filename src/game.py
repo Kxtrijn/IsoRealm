@@ -137,6 +137,7 @@ class Game:
         print(f"Generated {len(resources)} resources in the world")
         return resources
 
+    # game.py - adjust zoom amounts for instant zoom
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
@@ -147,50 +148,50 @@ class Game:
                     self.controls.handle_debug_keys(event, self.show_debug, self.show_structure)
                 if should_quit:
                     self.running = False
-
-                # Handle R key for rotation
+    
+                # Handle R key for instant rotation
                 if event.key == pygame.K_r:
-                    self.rotate_world_90()
-
-                # Handle plus/minus keys for zoom
+                    self.rotate_world_90()  # This is now instant
+    
+                # Handle plus/minus keys for zoom - instant zoom
                 elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
-                    self.camera.zoom_in(ZOOM_SPEED, pygame.mouse.get_pos())
+                    self.camera.zoom_in(ZOOM_SPEED * 0.5, pygame.mouse.get_pos())  # Instant zoom
                 elif event.key == pygame.K_MINUS:
-                    self.camera.zoom_out(ZOOM_SPEED, pygame.mouse.get_pos())
+                    self.camera.zoom_out(ZOOM_SPEED * 0.5, pygame.mouse.get_pos())  # Instant zoom
                 elif event.key == pygame.K_0:
-                    self.camera.reset_zoom()
-
+                    self.camera.reset_zoom()  # Instant zoom reset
+    
             elif event.type == pygame.MOUSEWHEEL:
-                # Mouse wheel zoom with mouse position as center point
+                # Mouse wheel zoom with mouse position as center point - instant zoom
                 mouse_pos = pygame.mouse.get_pos()
                 if event.y > 0:  # Scroll up - zoom in
-                    self.camera.zoom_in(ZOOM_SPEED * 2, mouse_pos)
+                    self.camera.zoom_in(ZOOM_SPEED, mouse_pos)  # Instant zoom
                 elif event.y < 0:  # Scroll down - zoom out
-                    self.camera.zoom_out(ZOOM_SPEED * 2, mouse_pos)
+                    self.camera.zoom_out(ZOOM_SPEED, mouse_pos)  # Instant zoom
 
-
+    # game.py - fix the update call
     def update(self, dt):
         """Update game state"""
         # Update controls
         self.controls.update(dt)
-
-        # Handle player movement (NO rotation adjustment)
+    
+        # Handle player movement
         keys = pygame.key.get_pressed()
         moved, (dx, dy) = self.handle_player_movement(keys)
-
+    
         # Handle auto idle
         self.controls.check_auto_idle(self.player)
-
+    
         # Handle player actions (attack on space, gathering on 'g')
         self.handle_player_actions(keys)
-
+    
         # Update animations
         self.player.update_animation(dt)
         for monster in self.monsters:
             monster.update_animation(dt)
             monster.update_ai(self.game_map)
-
-        # Update camera
+    
+        # Update camera - call without smoothing parameter
         self.camera.update(self.player.x, self.player.y)
 
     def render(self):
@@ -251,7 +252,7 @@ class Game:
         pygame.display.flip()
 
     def rotate_world_90(self):
-        """Rotate the entire world 90 degrees clockwise"""
+        """Rotate the entire world 90 degrees clockwise INSTANTLY"""
         # Rotate the map
         self.game_map.rotate_90_clockwise()
 
@@ -262,6 +263,9 @@ class Game:
 
         # Adjust all entity positions for rotation
         self.adjust_entities_for_rotation()
+
+        # Force immediate camera update for instant rotation feel
+        self.camera.center_on(self.player.x, self.player.y)
 
     def adjust_entities_for_rotation(self):
         """Adjust all entity positions for the current rotation"""
@@ -392,13 +396,17 @@ class Game:
 
         return draw_list
 
+    # game.py - in the run() method
     def run(self):
         """Main game loop"""
         while self.running:
-            dt = self.clock.tick(FPS)
-
+            dt = self.clock.tick(FPS)  # Keep FPS consistent
+    
+            # Cap dt to prevent large jumps
+            dt = min(dt, 100)  # Cap at 100ms to prevent huge jumps
+    
             self.handle_events()
             self.update(dt)
             self.render()
-
+    
         pygame.quit()

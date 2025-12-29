@@ -13,9 +13,9 @@ MAP_W, MAP_H = 40, 40
 SCREEN_W, SCREEN_H = 1600, 900
 
 # Zoom settings
-ZOOM_MIN = 0.5
-ZOOM_MAX = 2.0
-ZOOM_SPEED = 0.1
+ZOOM_MIN = 0.3  # Allow zooming out more
+ZOOM_MAX = 3.0  # Allow zooming in more
+ZOOM_SPEED = 0.1  # Larger step size for instant zoom feel
 DEFAULT_ZOOM = 1.0
 
 # constants.py - Add these lines
