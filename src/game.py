@@ -47,6 +47,8 @@ class Game:
         self.controls = Controls()
         self.renderer = Renderer(self.screen)  # This now contains UI
 
+        self.sprite_offset = 0  # Current sprite offset
+
     def load_assets(self):
         """Load all game assets"""
         # Only create directories
@@ -137,7 +139,6 @@ class Game:
         print(f"Generated {len(resources)} resources in the world")
         return resources
 
-    # game.py - adjust zoom amounts for instant zoom
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
@@ -148,11 +149,11 @@ class Game:
                     self.controls.handle_debug_keys(event, self.show_debug, self.show_structure)
                 if should_quit:
                     self.running = False
-    
+
                 # Handle R key for instant rotation
                 if event.key == pygame.K_r:
                     self.rotate_world_90()  # This is now instant
-    
+
                 # Handle plus/minus keys for zoom - instant zoom
                 elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
                     self.camera.zoom_in(ZOOM_SPEED * 0.5, pygame.mouse.get_pos())  # Instant zoom
@@ -160,7 +161,21 @@ class Game:
                     self.camera.zoom_out(ZOOM_SPEED * 0.5, pygame.mouse.get_pos())  # Instant zoom
                 elif event.key == pygame.K_0:
                     self.camera.reset_zoom()  # Instant zoom reset
-    
+
+                # Handle sprite offset adjustment keys
+                elif event.key == pygame.K_UP:
+                    self.sprite_offset -= 5  # Move sprites up
+                    self.renderer.set_sprite_offset(self.sprite_offset)
+                    print(f"Sprite offset: {self.sprite_offset}")
+                elif event.key == pygame.K_DOWN:
+                    self.sprite_offset += 5  # Move sprites down
+                    self.renderer.set_sprite_offset(self.sprite_offset)
+                    print(f"Sprite offset: {self.sprite_offset}")
+                elif event.key == pygame.K_HOME:
+                    self.sprite_offset = 0  # Reset offset
+                    self.renderer.set_sprite_offset(self.sprite_offset)
+                    print(f"Sprite offset reset to: {self.sprite_offset}")
+
             elif event.type == pygame.MOUSEWHEEL:
                 # Mouse wheel zoom with mouse position as center point - instant zoom
                 mouse_pos = pygame.mouse.get_pos()
@@ -169,49 +184,41 @@ class Game:
                 elif event.y < 0:  # Scroll down - zoom out
                     self.camera.zoom_out(ZOOM_SPEED, mouse_pos)  # Instant zoom
 
-    # game.py - fix the update call
     def update(self, dt):
         """Update game state"""
         # Update controls
         self.controls.update(dt)
-    
+
         # Handle player movement
         keys = pygame.key.get_pressed()
         moved, (dx, dy) = self.handle_player_movement(keys)
-    
+
         # Handle auto idle
         self.controls.check_auto_idle(self.player)
-    
+
         # Handle player actions (attack on space, gathering on 'g')
         self.handle_player_actions(keys)
-    
+
         # Update animations
         self.player.update_animation(dt)
         for monster in self.monsters:
             monster.update_animation(dt)
             monster.update_ai(self.game_map)
-    
-        # Update camera - call without smoothing parameter
+
+        # Update camera
         self.camera.update(self.player.x, self.player.y)
 
     def render(self):
         """Render the game"""
         self.renderer.clear()
     
-        # Prepare draw list for depth sorting
+        # Get the draw list
         draw_list = self.prepare_draw_list()
     
-        # Sort by depth
-        draw_list.sort(key=lambda item: item['depth'])
+        # Sort by depth (y then x for isometric)
+        draw_list.sort(key=lambda item: (item['depth'], item.get('entity_type', '')))
     
-        # Extract just the tiles for grid dots
-        tile_list = [item for item in draw_list if item['type'] == 'tile']
-    
-        # TEST: Draw a red debug dot at player position
-        player_sx, player_sy = self.camera.world_to_screen(self.player.x, self.player.y)
-        pygame.draw.circle(self.screen, (255, 0, 0), (int(player_sx), int(player_sy)), 10)
-    
-        # Draw everything
+        # Draw everything in sorted order
         for item in draw_list:
             sx, sy = item['screen_x'], item['screen_y']
     
@@ -220,9 +227,7 @@ class Game:
                 tile_type = self.game_map.tiles[x][y]
                 img = self.tileset.get(tile_type, list(self.tileset.values())[0])
     
-                # TEST: Draw a green debug dot at tile center before drawing tile
-                pygame.draw.circle(self.screen, (0, 255, 0), (int(sx), int(sy)), 5)
-    
+                # Draw tile EXACTLY centered
                 self.renderer.draw_tile(img, sx, sy, self.camera.zoom)
     
             elif item['type'] == 'resource':
@@ -236,12 +241,13 @@ class Game:
             elif item['type'] == 'player':
                 self.renderer.draw_entity(self.player, sx, sy, 'player', self.camera.zoom)
     
-        # Draw grid dots on top of tiles (in white)
+        # Draw grid dots EXACTLY at tile centers
+        tile_list = [item for item in draw_list if item['type'] == 'tile']
         self.renderer.draw_grid_dots(tile_list, self.camera.zoom)
     
-        # Draw HUD and UI with zoom info
+        # Draw HUD and UI with sprite offset info
         resources_left = len([r for r in self.resources if not r.collected])
-        self.renderer.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom)
+        self.renderer.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom, self.sprite_offset)
     
         if self.show_debug:
             self.renderer.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom)
@@ -347,53 +353,63 @@ class Game:
     def prepare_draw_list(self):
         """Prepare a list of everything to draw with depth information"""
         draw_list = []
-
-        # Add tiles (respect rotation)
+    
+        # Add tiles first
         for x in range(self.game_map.w):
             for y in range(self.game_map.h):
                 sx, sy = self.camera.world_to_screen(x, y)
+                # Calculate depth based on isometric position
+                depth = x + y  # Basic isometric depth
                 draw_list.append({
                     'type': 'tile',
-                    'depth': x + y,
+                    'depth': depth,
                     'screen_x': sx,
                     'screen_y': sy,
                     'map_x': x,
                     'map_y': y
                 })
-
+    
         # Add resources
         for resource in self.resources:
             if not resource.collected:
                 sx, sy = self.camera.world_to_screen(resource.x, resource.y)
+                # Resources should appear on top, so add a small offset to depth
+                depth = resource.x + resource.y + 0.1
                 draw_list.append({
                     'type': 'resource',
-                    'depth': resource.x + resource.y,
+                    'depth': depth,
                     'screen_x': sx,
                     'screen_y': sy,
-                    'entity': resource
+                    'entity': resource,
+                    'entity_type': 'resource'
                 })
-
+    
         # Add monsters
         for monster in self.monsters:
             sx, sy = self.camera.world_to_screen(monster.x, monster.y)
+            # Monsters should appear on top of resources
+            depth = monster.x + monster.y + 0.2
             draw_list.append({
                 'type': 'monster',
-                'depth': monster.x + monster.y,
+                'depth': depth,
                 'screen_x': sx,
                 'screen_y': sy,
-                'entity': monster
+                'entity': monster,
+                'entity_type': 'monster'
             })
-
-        # Add player
+    
+        # Add player (always on top)
         sx, sy = self.camera.world_to_screen(self.player.x, self.player.y)
+        depth = self.player.x + self.player.y + 0.3
         draw_list.append({
             'type': 'player',
-            'depth': self.player.x + self.player.y,
+            'depth': depth,
             'screen_x': sx,
             'screen_y': sy,
-            'entity': self.player
+            'entity': self.player,
+            'entity_type': 'player'
         })
-
+    
         return draw_list
 
     # game.py - in the run() method

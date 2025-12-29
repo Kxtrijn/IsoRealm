@@ -48,7 +48,7 @@ class UI:
         return main_surf.get_size()
 
     # ui.py - update draw_hud method
-    def draw_hud(self, player, resources_left, rotation=0, zoom=1.0):
+    def draw_hud(self, player, resources_left, rotation=0, zoom=1.0, sprite_offset=0):
         """Draw the main HUD with player stats and controls"""
         hud_y = 8
     
@@ -56,9 +56,10 @@ class UI:
         anim_state = "IDLE" if player.current_anim == 'idle' else "WALKING"
         state_color = self.colors['idle'] if player.current_anim == 'idle' else self.colors['walk']
     
-        # Add rotation and zoom to HUD
+        # Add rotation, zoom, and sprite offset to HUD
         rotation_text = f"Rotation: {rotation * 90}°"
         zoom_text = f"Zoom: {zoom:.1f}x"
+        offset_text = f"Sprite Offset: {sprite_offset}"
     
         hud_text = f'HP: {player.hp} | Resources: {player.inv.get("resource", 0)} | Remaining: {resources_left} | State: '
         txt_width, _ = self.draw_text_with_shadow(
@@ -72,7 +73,7 @@ class UI:
     
         hud_y += 25
     
-        # Add rotation and zoom info
+        # Add rotation, zoom, and offset info
         self.draw_text_with_shadow(
             rotation_text, self.font, (200, 220, 255), 8, hud_y
         )
@@ -82,13 +83,18 @@ class UI:
             zoom_text, self.font, (220, 255, 200), 8 + rot_txt_width + 20, hud_y
         )
     
+        zoom_txt_width, _ = self.font.size(zoom_text)
+        self.draw_text_with_shadow(
+            offset_text, self.font, (255, 220, 200), 8 + rot_txt_width + 20 + zoom_txt_width + 20, hud_y
+        )
+    
         hud_y += 25
     
-        # Update controls list to include zoom controls
+        # Update controls list to include offset controls
         controls = [
             "Arrows/WASD: Move | Space: Attack | G: Gather | R: Rotate world",
-            "Mouse Wheel/+/-: Zoom | 0: Reset zoom | F1: Toggle debug",
-            "F2: Toggle folder view | ESC: Quit"
+            "Mouse Wheel/+/-: Zoom | 0: Reset zoom | Up/Down: Adjust sprite offset | Home: Reset offset",
+            "F1: Toggle debug | F2: Toggle folder view | ESC: Quit"
         ]
     
         for i, line in enumerate(controls):
@@ -210,7 +216,6 @@ class UI:
         main_surf = self.small_font.render(footer_text, True, self.colors['text_secondary'])
         self.screen.blit(main_surf, (footer_x, footer_y))
 
-    # ui.py - update draw_health_bar method
     def draw_health_bar(self, entity, screen_x, screen_y, frame_height, current_hp, max_hp, zoom=1.0):
         """Draw a health bar above an entity"""
         if current_hp >= max_hp:  # Don't draw full health bars
@@ -220,7 +225,8 @@ class UI:
         bar_width = int(30 * zoom)
         bar_height = max(2, int(4 * zoom))
         bar_x = screen_x - bar_width // 2
-        bar_y = screen_y - int(frame_height * zoom) // 2 - int(15 * zoom)
+        # Position above the entity (screen_y is where to position the health bar)
+        bar_y = screen_y
     
         # Draw shadow for health bar
         pygame.draw.rect(self.screen, (0, 0, 0, 100),

@@ -1,4 +1,4 @@
-# renderer.py - fix tile drawing with zoom
+# renderer.py - add adjustable sprite offset
 import pygame
 from ui.ui import UI
 from constants import *
@@ -7,15 +7,16 @@ class Renderer:
     def __init__(self, screen):
         self.screen = screen
         self.ui = UI(screen)
+        self.sprite_offset = SPRITE_VERTICAL_OFFSET  # Load from constants
 
     def clear(self):
         """Clear the screen"""
         self.ui.clear_screen()
 
     def draw_tile(self, tile_img, screen_x, screen_y, zoom=1.0):
-        """Draw a tile at screen coordinates with zoom - CORRECTED VERSION"""
+        """Draw a tile at screen coordinates with zoom - EXACTLY CENTERED"""
         # Scale the tile image if zoom is not 1.0
-        if abs(zoom - 1.0) > 0.01:  # Use a small epsilon
+        if abs(zoom - 1.0) > 0.01:
             # Get the scaled dimensions
             original_width, original_height = tile_img.get_size()
             scaled_width = int(original_width * zoom)
@@ -24,7 +25,7 @@ class Renderer:
             # Scale the image
             scaled_img = pygame.transform.scale(tile_img, (scaled_width, scaled_height))
 
-            # Draw centered at screen_x, screen_y (which is the tile center)
+            # Draw EXACTLY centered at screen_x, screen_y
             self.screen.blit(scaled_img,
                              (screen_x - scaled_width // 2,
                               screen_y - scaled_height // 2))
@@ -36,7 +37,7 @@ class Renderer:
                               screen_y - original_height // 2))
 
     def draw_entity(self, entity, screen_x, screen_y, entity_type='entity', zoom=1.0):
-        """Draw an entity at screen coordinates with zoom"""
+        """Draw an entity at screen coordinates with zoom - WITH ADJUSTABLE OFFSET"""
         frame = entity.get_current_frame()
         if not frame:
             return
@@ -51,16 +52,32 @@ class Renderer:
         # Get current frame dimensions (might be scaled)
         frame_width, frame_height = frame.get_width(), frame.get_height()
 
-        # Different vertical offsets for different entity types
-        vertical_offset = -10 * zoom  # Scale offset with zoom
+        # Base vertical offset to position sprite between dots
+        base_offset = -frame_height // 2  # Move sprite up by half its height
 
+        # Add adjustable offset from constants
+        adjustable_offset = self.sprite_offset * zoom
+
+        # Entity-specific adjustments
         if entity_type == 'player':
-            vertical_offset = -12 * zoom
-            # Visual effects for player (scaled with zoom)
+            entity_adjustment = -24 * zoom  # Player slightly higher
+        elif entity_type == 'monster':
+            entity_adjustment = -1 * zoom  # Monster slightly higher
+        elif entity_type == 'resource':
+            entity_adjustment = 0  # Resource at standard position
+        else:
+            entity_adjustment = 0
+
+        # Total vertical offset
+        vertical_offset = base_offset + adjustable_offset + entity_adjustment
+
+        # Visual effects for player (scaled with zoom)
+        if entity_type == 'player':
             if entity.current_anim == 'idle':
                 pulse_size = (3 + int(2 * pygame.math.Vector2(1, 0).rotate(pygame.time.get_ticks() / 50).y)) * zoom
+                # Position pulse effect at the sprite's feet (tile center)
                 pygame.draw.circle(self.screen, (100, 255, 100, 80),
-                                   (screen_x, screen_y + 20 * zoom), int(pulse_size))
+                                   (screen_x, screen_y), int(pulse_size))
             elif entity.current_anim == 'walk':
                 for i in range(2):
                     alpha = 150 - i * 75
@@ -69,20 +86,24 @@ class Renderer:
                     trail_frame.set_alpha(alpha)
                     self.screen.blit(trail_frame,
                                      (screen_x - frame_width // 2 - offset,
-                                      screen_y - frame_height // 2 - 12 * zoom + offset))
+                                      screen_y - frame_height // 2 + vertical_offset + offset))
 
         # Draw health bar for monsters with low HP
         if entity_type == 'monster' and entity.hp < 8:
-            self.ui.draw_health_bar(entity, screen_x, screen_y, frame_height, entity.hp, 8, zoom)
+            # Position health bar above the entity
+            bar_y_offset = -frame_height - 5 * zoom
+            self.ui.draw_health_bar(entity, screen_x,
+                                    screen_y - frame_height // 2 + vertical_offset + bar_y_offset,
+                                    frame_height, entity.hp, 8, zoom)
 
-        # Draw the entity
+        # Draw the entity with adjustable offset
         self.screen.blit(frame,
                          (screen_x - frame_width // 2,
                           screen_y - frame_height // 2 + vertical_offset))
 
     def draw_grid_dots(self, visible_tiles, zoom=1.0):
         """
-        Draw grid dots on top of each tile.
+        Draw grid dots EXACTLY at tile centers.
         visible_tiles should be a list of dictionaries with 'screen_x', 'screen_y' keys.
         """
         for tile in visible_tiles:
@@ -91,7 +112,7 @@ class Renderer:
             # Scale dot size with zoom
             dot_radius = max(1, int(3 * zoom))
 
-            # Draw a small dot at the tile center
+            # Draw a small dot EXACTLY at the tile center (sprite feet position)
             pygame.draw.circle(self.screen, (255, 255, 255, 180), (sx, sy), dot_radius)
 
             # Draw a subtle border around the dot for better visibility
@@ -99,9 +120,10 @@ class Renderer:
 
     # ... rest of the methods remain the same ...
 
-    def draw_hud(self, player, resources_left, rotation=0, zoom=1.0):
+    # renderer.py - fix draw_hud signature
+    def draw_hud(self, player, resources_left, rotation=0, zoom=1.0, sprite_offset=0):
         """Draw the HUD"""
-        self.ui.draw_hud(player, resources_left, rotation, zoom)
+        self.ui.draw_hud(player, resources_left, rotation, zoom, sprite_offset)
 
     def draw_state_indicator(self, player, resources_left):
         """Draw animation state indicator"""
@@ -114,3 +136,11 @@ class Renderer:
     def draw_folder_structure(self, folder_structure):
         """Draw folder structure view"""
         self.ui.draw_folder_structure(folder_structure)
+
+    def set_sprite_offset(self, offset):
+        """Change the sprite vertical offset at runtime"""
+        self.sprite_offset = offset
+
+    def get_sprite_offset(self):
+        """Get the current sprite vertical offset"""
+        return self.sprite_offset

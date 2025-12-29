@@ -24,6 +24,9 @@ ROTATION_COOLDOWN = 200  # milliseconds between rotations
 
 ROTATION_KEY = pygame.K_r  # Add this line
 
+# Sprite positioning
+SPRITE_VERTICAL_OFFSET = -6  # Adjust this to move sprites up (negative) or down (positive)
+
 # Animation speeds in milliseconds
 ANIM_SPEED_PLAYER = 120
 ANIM_SPEED_MONSTER = 150
