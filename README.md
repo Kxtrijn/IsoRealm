@@ -7,7 +7,7 @@ A small isometric singleplayer RPG prototype in Python.
   - install requirements: open terminal in main folder and run `pip install -r requirements.txt`
   - then run `python src/main.py`
 
-- Run: https://youtu.be/Bz71yfxBqxI
+- Run: https://youtu.be/g59-cg_XDDc
 
 - Controls:
   - Arrow keys: move on the isometric grid
