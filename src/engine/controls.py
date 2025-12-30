@@ -1,12 +1,15 @@
 import pygame
-from constants import MOVE_COOLDOWN
-
+from constants import *
+from ui.debug_panel import DebugPanel
+from ui.ui import UI
 
 class Controls:
-    def __init__(self):
+    def __init__(self, screen):
+        self.screen = screen
         self.move_cooldown = 0
         self.game_time = 0
         self.last_move_time = 0
+        self.debug_panel = DebugPanel(self.screen)
 
     def update(self, dt):
         """Update control timers"""
@@ -26,13 +29,11 @@ class Controls:
             return True
         return False
 
-    def handle_debug_keys(self, event, show_debug, show_structure):
+    def handle_debug_keys(self, event, show_debug):
         """Handle debug/show toggles"""
         if event.key == pygame.K_F1:
             show_debug = not show_debug
-        elif event.key == pygame.K_F2:
-            show_structure = not show_structure
         elif event.key == pygame.K_ESCAPE:
-            return show_debug, show_structure, True  # Quit game
-
-        return show_debug, show_structure, False
+            return show_debug, True  # Quit game
+                
+        return show_debug, False

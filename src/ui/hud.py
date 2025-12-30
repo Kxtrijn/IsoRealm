@@ -78,7 +78,7 @@ class HUD:
         controls = [
             "Arrows/WASD: Move | Space: Attack | G: Gather | R: Rotate world",
             "Mouse Wheel/+/-: Zoom | 0: Reset zoom | Up/Down: Adjust sprite offset | Home: Reset offset",
-            "F1: Toggle debug | F2: Toggle folder view | ESC: Quit"
+            "F1: Toggle debug | ESC: Quit"
         ]
 
         for i, line in enumerate(controls):

@@ -25,7 +25,7 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Initialize components
-        self.controls = Controls()
+        self.controls = Controls(self.screen)
         self.renderer = Renderer(self.screen)
         self.camera = Camera()
 
@@ -128,8 +128,8 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
-                self.show_debug, self.show_structure, should_quit = \
-                    self.controls.handle_debug_keys(event, self.show_debug, self.show_structure)
+                self.show_debug, should_quit = \
+                    self.controls.handle_debug_keys(event, self.show_debug)
                 if should_quit:
                     self.running = False
 
@@ -233,17 +233,14 @@ class Game:
     
         # Draw grid dots EXACTLY at tile centers
         tile_list = [item for item in draw_list if item['type'] == 'tile']
-        self.debug_panel.draw_grid_dots(tile_list, self.camera.zoom)
+        self.debug_panel.draw_grid_dots(tile_list, self.camera.zoom, self.show_debug)
     
         # Draw HUD and UI with sprite offset info
         resources_left = len([r for r in self.resources if not r.collected])
         self.hud.draw_hud(self.player, resources_left, self.rotation, self.camera.zoom, self.sprite_offset)
     
         if self.show_debug:
-            self.debug_panel.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom)
-    
-        if self.show_structure:
-            self.debug_panel.draw_folder_structure(self.folder_structure)
+            self.debug_panel.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom, self.show_debug)
     
         pygame.display.flip()
 

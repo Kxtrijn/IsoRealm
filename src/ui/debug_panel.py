@@ -31,8 +31,11 @@ class DebugPanel:
         self.ui = UI(self.screen)
 
     # ui.py - add zoom parameter to draw_debug_info
-    def draw_debug_info(self, sprite_status, all_loaded_files, clock, player, zoom=1.0):
-        """Draw debug information panel"""
+    def draw_debug_info(self, sprite_status, all_loaded_files, clock, player, zoom=1.0, show_debug=False):
+        """Draw debug information panel (only if show_debug is True)"""
+        if not show_debug:
+            return
+            
         debug_y = SCREEN_H - 180
 
         # Sprite status header with shadow
@@ -72,11 +75,15 @@ class DebugPanel:
                 8, debug_y + i * 18
             )
 
-    def draw_grid_dots(self, visible_tiles, zoom=1.0):
+    def draw_grid_dots(self, visible_tiles, zoom=1.0, show_debug=False):
         """
         Draw grid dots EXACTLY at tile centers.
         visible_tiles should be a list of dictionaries with 'screen_x', 'screen_y' keys.
+        Only draws if show_debug is True.
         """
+        if not show_debug:
+            return
+            
         for tile in visible_tiles:
             sx, sy = tile['screen_x'], tile['screen_y']
             # Scale dot size with zoom
