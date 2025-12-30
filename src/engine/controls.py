@@ -33,6 +33,9 @@ class Controls:
         """Handle debug/show toggles"""
         if event.key == pygame.K_F1:
             show_debug = not show_debug
+        elif event.key == pygame.K_TAB:  # Add Tab for inventory toggle
+            # Note: This is handled in ui_manager now
+            pass
         elif event.key == pygame.K_ESCAPE:
             return show_debug, True  # Quit game
                 

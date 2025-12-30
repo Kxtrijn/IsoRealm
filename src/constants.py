@@ -58,3 +58,35 @@ ANIM_WALK = 'walk'
 
 # Directions
 DIRECTIONS = ['north', 'south', 'east', 'west']
+
+
+# UI Dimensions
+INVENTORY_WIDTH = 400
+INVENTORY_HEIGHT = 500
+HOTBAR_WIDTH = 600
+HOTBAR_HEIGHT = 80
+UI_MARGIN = 10
+
+# Colors for UI
+COLOR_UI_BACKGROUND = (50, 50, 70, 200)      # RGBA format
+COLOR_UI_BORDER = (100, 100, 150, 255)       # RGBA format
+COLOR_SLOT_EMPTY = (70, 70, 90, 150)         # RGBA format
+COLOR_SLOT_FILLED = (90, 120, 150, 180)      # RGBA format
+COLOR_SLOT_HOVER = (120, 150, 180, 200)      # RGBA format
+COLOR_SLOT_SELECTED = (150, 180, 210, 200)   # RGBA format
+COLOR_TEXT_UI = (240, 240, 240, 255)         # RGBA format
+
+# Inventory settings
+INVENTORY_ROWS = 5
+INVENTORY_COLS = 9
+HOTBAR_SLOTS = 9
+TOTAL_SLOTS = INVENTORY_ROWS * INVENTORY_COLS
+SLOT_SIZE = 48
+SLOT_MARGIN = 4
+
+# Item types
+ITEM_TYPES = {
+    'resource': 'Resource',
+}
+
+RESOURCE_IMAGE = 'resource.png'  # Name of resource sprite file

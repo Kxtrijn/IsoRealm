@@ -5,6 +5,8 @@ Handles player movement and actions.
 import pygame
 from constants import *
 
+# [file name]: player_manager.py (update)
+# Update the handle_actions method to not require keys parameter for certain actions
 
 class PlayerController:
     def __init__(self, controls):
@@ -17,8 +19,6 @@ class PlayerController:
             return False, (0, 0)
 
         dx, dy = 0, 0
-        # ... rest of method
-
         # Always check keys, even during cooldown
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             dy = -1
@@ -45,13 +45,15 @@ class PlayerController:
 
         return False, (0, 0)
     
-    def handle_actions(self, player, monsters, resources, keys):
+    def handle_actions(self, player, monsters, resources, keys=None):
         """Handle player action input"""
-        if keys[pygame.K_SPACE]:
-            return player.attack(monsters), 'attack'
-        
-        if keys[pygame.K_g]:
-            if player.gather_resource(resources):
-                return True, 'gather'
+        # If keys parameter is provided, check for key presses
+        if keys is not None:
+            if keys[pygame.K_SPACE]:
+                return player.attack(monsters), 'attack'
+            
+            if keys[pygame.K_g]:
+                if player.gather_resource(resources):
+                    return True, 'gather'
         
         return False, None

@@ -16,6 +16,8 @@ from engine.render_manager import RenderManager
 from ui.hud import HUD
 from ui.ui import UI
 from ui.debug_panel import DebugPanel
+from ui.inventory import Inventory
+from ui.ui_manager import UIManager
 
 class Game:
     def __init__(self):
@@ -68,6 +70,9 @@ class Game:
         self.hud = HUD(self.screen)
 
         self.sprite_offset = 0  # Current sprite offset
+
+        self.inventory = Inventory()
+        self.ui_manager = UIManager(self.screen)
 
     def load_assets(self): # kat
         """Load all game assets"""
@@ -122,12 +127,22 @@ class Game:
         if not self.resource_sprite:
             self.resource_sprite = create_fallback_sprite((200, 180, 60), 32)
 
+# [file name]: game.py (correction)
+# Update the handle_events method to pass the current key state correctly
+
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.KEYDOWN:
+            
+            # Handle UI events
+            self.ui_manager.handle_events(event, self.inventory)
+            
+            if event.type == pygame.KEYDOWN:
+                # Get current key state
+                current_keys = pygame.key.get_pressed()
+                
                 self.show_debug, should_quit = \
                     self.controls.handle_debug_keys(event, self.show_debug)
                 if should_quit:
@@ -164,6 +179,21 @@ class Game:
                     self.sprite_offset = 0  # Reset offset
                     self.renderer.set_sprite_offset(self.sprite_offset)
                     print(f"Sprite offset reset to: {self.sprite_offset}")
+                
+                # Handle gathering resources with G key
+                elif event.key == pygame.K_g:
+                    action_result, action_type = self.player_controller.handle_actions(
+                        self.player, self.monsters, self.resources, current_keys
+                    )
+                    if action_result and action_type == 'gather':
+                        # Add resource to inventory
+                        self.inventory.add_item('resource', 1)
+                
+                # Handle space for attack
+                elif event.key == pygame.K_SPACE:
+                    action_result, action_type = self.player_controller.handle_actions(
+                        self.player, self.monsters, self.resources, current_keys
+                    )
 
             elif event.type == pygame.MOUSEWHEEL:
                 # Mouse wheel zoom with mouse position as center point - instant zoom
@@ -173,6 +203,7 @@ class Game:
                 elif event.y < 0:  # Scroll down - zoom out
                     self.camera.zoom_out(ZOOM_SPEED, mouse_pos)  # Instant zoom
 
+    # [file name]: game.py (update update method)
     def update(self, dt):
         """Update game state"""
         # Update controls
@@ -181,22 +212,24 @@ class Game:
         # Handle player movement
         keys = pygame.key.get_pressed()
         moved, (dx, dy) = self.player_controller.handle_movement(
-        self.player, self.game_map, keys
+            self.player, self.game_map, keys
         )
 
         # Handle auto idle
         self.controls.check_auto_idle(self.player)
 
-        # Handle player actions (attack on space, gathering on 'g')
-        action_result, action_type = self.player_controller.handle_actions(
-            self.player, self.monsters, self.resources, keys
-        )
+        # NOTE: We're not calling handle_actions here anymore
+        # because actions are now handled in handle_events when keys are pressed
+        # This prevents continuous action triggering
 
         # Update animations
         self.entity_manager.update(dt)
 
         # Update camera
         self.camera.update(self.player.x, self.player.y)
+        
+        # Update UI
+        self.ui_manager.update(self.inventory)
 
     def render(self):
         """Render the game"""
@@ -241,6 +274,9 @@ class Game:
     
         if self.show_debug:
             self.debug_panel.draw_debug_info(self.sprite_status, self.all_loaded_files, self.clock, self.player, self.camera.zoom, self.show_debug)
+
+        # Draw UI (on top of everything else)
+        self.ui_manager.draw(self.inventory)
     
         pygame.display.flip()
 

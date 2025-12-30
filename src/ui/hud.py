@@ -79,6 +79,7 @@ class HUD:
             "Arrows/WASD: Move | Space: Attack | G: Gather | R: Rotate world",
             "Mouse Wheel/+/-: Zoom | 0: Reset zoom | Up/Down: Adjust sprite offset | Home: Reset offset",
             "F1: Toggle debug | ESC: Quit"
+            "I: Inventory | 1-9: Select hotbar"
         ]
 
         for i, line in enumerate(controls):
