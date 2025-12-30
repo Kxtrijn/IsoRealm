@@ -15,5 +15,6 @@ A small isometric singleplayer RPG prototype in Python.
   - G: gather resource on current tile
   - R: rotate the world
   - Scroll wheel: zoom in/out
+  - F1: toggle debug
 
 - Replace images in `assets/tiles/` and `assets/sprites/` with your tileset/sprites (keep names: `grass.png`, `water.png`, `stone.png`, `sand.png`, `player.png`, `monster.png`, `resource.png`).
